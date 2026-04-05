@@ -1,0 +1,51 @@
+workflows:
+  ios-keyboard:
+    name: Dudu AI Keyboard - iOS Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      ios_signing:
+        distribution_type: development   # change to app_store when releasing
+        bundle_identifier: com.dudu.ai.keyboard
+      vars:
+        XCODE_PROJECT: "DuduAIKeyboard.xcodeproj"
+        XCODE_SCHEME: "DuduAIKeyboard"
+        BUNDLE_ID: "com.dudu.ai.keyboard"
+        EXTENSION_BUNDLE_ID: "com.dudu.ai.keyboard.extension"
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+      - name: Set Groq API Key
+        script: |
+          # Replace placeholder with real key from Codemagic Environment Variables
+          sed -i '' "s/YOUR_GROQ_API_KEY_HERE/$GROQ_API_KEY/" \
+            DuduAIKeyboardExtension/GroqClient.swift
+
+      - name: Set bundle identifiers
+        script: |
+          /usr/libexec/PlistBuddy -c \
+            "Set :CFBundleIdentifier $BUNDLE_ID" \
+            DuduAIKeyboard/Info.plist
+          /usr/libexec/PlistBuddy -c \
+            "Set :CFBundleIdentifier $EXTENSION_BUNDLE_ID" \
+            DuduAIKeyboardExtension/Info.plist
+
+      - name: Build iOS app
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      email:
+        recipients:
+          - samhildark2000@gmail.com    # your email from Codemagic
+        notify:
+          success: true
+          failure: true
